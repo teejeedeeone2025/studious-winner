@@ -1,0 +1,52 @@
+name: URL Monitor
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Runs every hour
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install beautifulsoup4 requests
+        
+    - name: Run URL monitor
+      env:
+        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      run: python url_monitor.py
+      
+    - name: Create PR if there are changes
+      if: success() && fileExists('updated_url_list.txt')
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        
+        # Rename the updated file
+        mv updated_url_list.txt url_list.txt
+        
+        # Create a new branch and commit
+        git checkout -b url-update-$(date +%s)
+        git add url_list.txt
+        git commit -m "Update URL list with new URLs"
+        git push origin HEAD
+        
+        # Create pull request
+        gh pr create \
+          --title "Update URL list" \
+          --body "Automated update of URL list with new URLs" \
+          --head "$(git branch --show-current)"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
