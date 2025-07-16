@@ -3,7 +3,11 @@ name: URL Monitor
 on:
   schedule:
     - cron: '0 * * * *'  # Runs every hour
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   monitor:
@@ -12,6 +16,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Needed to create new branches
       
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -48,16 +54,19 @@ jobs:
         # Rename the updated file
         mv updated_url_list.txt url_list.txt
         
-        # Create a new branch and commit
-        git checkout -b "url-update-$(date +%s)"
+        # Create timestamp-based branch name
+        BRANCH_NAME="url-update-$(date +%s)"
+        
+        # Create and push to new branch
+        git checkout -b $BRANCH_NAME
         git add url_list.txt
         git commit -m "Update URL list with new URLs"
-        git push origin HEAD
+        git push origin $BRANCH_NAME
         
         # Create pull request
         gh pr create \
           --title "Update URL list" \
           --body "Automated update of URL list with new URLs" \
-          --head "$(git branch --show-current)"
+          --head $BRANCH_NAME
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
