@@ -26,8 +26,6 @@
 /culture/books
 /culture/entertainment-news
 /culture/film-tv
-/culture/music
-/culture/style
 /future-planet
 /future-planet/green-living
 /future-planet/natural-wonders
