@@ -194,3 +194,4 @@ https://www.bbc.com/usingthebbc/cookies/how-can-i-change-my-bbc-cookie-settings/
 https://www.bbc.com/video
 https://www.bbc.com/weather
 https://www.britbox.com/?utm_source=bbc.com&utm_medium=referral&utm_campaign=footer
+https://www.iana.org/domains/example
