@@ -31,13 +31,12 @@ jobs:
         
     - name: Install GitHub CLI
       run: |
-        sudo apt-get update
-        sudo apt-get install -y curl
+        type -p curl >/dev/null || sudo apt install curl -y
         curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
         sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-        sudo apt-get update
-        sudo apt-get install -y gh
+        sudo apt update
+        sudo apt install gh -y
         
     - name: Run URL monitor
       env:
@@ -57,6 +56,7 @@ jobs:
         
     - name: Create Pull Request
       if: steps.check_updates.outputs.has_updates == 'true'
+      id: create_pr
       uses: peter-evans/create-pull-request@v4
       with:
         title: "Auto-update URL list"
@@ -66,15 +66,10 @@ jobs:
         delete-branch: true
         
     - name: Enable Auto-Merge
-      if: steps.check_updates.outputs.has_updates == 'true'
+      if: steps.check_updates.outputs.has_updates == 'true' && steps.create_pr.outputs.pull-request-number != ''
       run: |
-        # Wait a few seconds for PR to be created
-        sleep 5
-        # Get the PR number
-        PR_NUMBER=$(gh pr list --head "auto-update-urls-*" --json number --jq '.[0].number')
-        # Enable auto-merge
-        gh pr merge --auto --merge "$PR_NUMBER"
-        # Approve the PR (required if branch protection requires approvals)
-        gh pr review "$PR_NUMBER" --approve
+        echo "PR Number: ${{ steps.create_pr.outputs.pull-request-number }}"
+        gh pr merge ${{ steps.create_pr.outputs.pull-request-number }} --auto --merge
+        gh pr review ${{ steps.create_pr.outputs.pull-request-number }} --approve
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
