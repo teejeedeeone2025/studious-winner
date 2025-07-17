@@ -40,7 +40,7 @@ URL_LIST_FILE = "url_list.txt"
 TARGET_URL = "https://bbc.com"
 
 # SMS settings
-SMS_PHONE_NUMBER = "09060558418"  # Your MTN number
+
 SMS_LOGIN_URL = "https://auth.mtnonline.com/login?state=hKFo2SBCSjVFajhyM211MDdIX1VXdUdLSzlFeUJTb1o3LUVYU6FupWxvZ2luo3RpZNkgc0NDdzczeFNwbl8zTjN5bkpuY3pQVXM5Sk9rVHZ0TFajY2lk2SB0V05sSkJmcXY4QjVjOXJWcml5OUVhdkVaTjN6cjQ2NQ&client=tWNlJBfqv8B5c9rVriy9EavEZN3zr465&protocol=oauth2&redirect_uri=https%3A%2F%2Fshop.mtn.ng%2Fmtnng%2Feshop%2Fcallback%2F&scope=openid%20profile%20email&response_mode=query&response_type=code&nonce=252325dd4d7509175e0bbd50e6d7ee0d&code_challenge=Ke-Ktp4CWM3tX2R_jGmLvDXkltKCZQrNFqGYrSueOAI&code_challenge_method=S256&theme="
 
 def setup_chrome_driver():
