@@ -19,16 +19,20 @@ from selenium.webdriver.chrome.options import Options
 import chromedriver_autoinstaller
 import time
 
-# === TESTING CONFIGURATION (DELETE AFTER TESTING) ===
-SENDER_EMAIL = os.getenv("SENDER_EMAIL")
-RECIPIENT_EMAILS = os.getenv("RECIPIENT_EMAILS").split(",")  # Comma-separated list
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-SMTP_SERVER = os.getenv("SMTP_SERVER")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))  # Default to 587 if not set
+# Email settings
+SENDER_EMAIL = os.environ["SENDER_EMAIL"]  # Will fail if secret not set
+RECIPIENT_EMAILS = os.environ["RECIPIENT_EMAILS"].split(",")  # Comma-separated list
+EMAIL_PASSWORD = os.environ["EMAIL_PASSWORD"]
+SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")  # Default if not set
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))  # Default 587
 
 # GitHub settings
-GH_TOKEN = os.getenv("GH_TOKEN")
-REPO_NAME = os.getenv("REPO_NAME")
+GH_TOKEN = os.environ["GH_TOKEN"]
+REPO_NAME = os.environ["REPO_NAME"]
+
+# SMS settings
+SMS_PHONE_NUMBER = os.environ["SMS_PHONE_NUMBER"]
+
 
 URL_LIST_FILE = "url_list.txt"
 
