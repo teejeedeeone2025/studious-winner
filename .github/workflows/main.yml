@@ -1,75 +1,35 @@
-name: URL Monitor
+name: Run Bot (Self-triggering)
 
 on:
-  schedule:
-    - cron: '0 * * * *'  # Hourly checks
-  workflow_dispatch:
-
-permissions:
-  contents: write
-  pull-requests: write
+  workflow_dispatch: # Allows manual start
 
 jobs:
-  monitor:
+  run-bot:
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install requests beautifulsoup4
-        
-    - name: Install GitHub CLI
-      run: |
-        type -p curl >/dev/null || sudo apt install curl -y
-        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-        sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-        sudo apt update
-        sudo apt install gh -y
-        
-    - name: Run URL monitor
-      env:
-        SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-        RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
-        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-      run: python url_monitor.py
-      
-    - name: Check for updated URLs
-      id: check_updates
-      run: |
-        if [ -f "updated_url_list.txt" ]; then
-          echo "has_updates=true" >> $GITHUB_OUTPUT
-        else
-          echo "has_updates=false" >> $GITHUB_OUTPUT
-        fi
-        
-    - name: Create Pull Request
-      if: steps.check_updates.outputs.has_updates == 'true'
-      id: create_pr
-      uses: peter-evans/create-pull-request@v4
-      with:
-        title: "Auto-update URL list"
-        body: "Automatically updated URL list"
-        branch: "auto-update-urls-$(date +%s)"
-        commit-message: "Update URL list"
-        delete-branch: true
-        
-    - name: Enable Auto-Merge
-      if: steps.check_updates.outputs.has_updates == 'true' && steps.create_pr.outputs.pull-request-number != ''
-      run: |
-        echo "PR Number: ${{ steps.create_pr.outputs.pull-request-number }}"
-        gh pr merge ${{ steps.create_pr.outputs.pull-request-number }} --auto --merge
-        gh pr review ${{ steps.create_pr.outputs.pull-request-number }} --approve
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run bot
+        run: python url_monitor.py
+
+      # Add delay before next trigger (5 minutes = 300 seconds)
+      - name: Delay before next run
+        run: sleep 500
+
+      # Self-trigger next run
+      - name: Trigger Next Run
+        run: |
+          curl -X POST -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/workflows/main.yml/dispatches" \
+          -d '{"ref":"main"}'
