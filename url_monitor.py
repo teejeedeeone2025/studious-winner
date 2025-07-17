@@ -1,8 +1,10 @@
-sudo apt-get update
-sudo apt-get install -y wget curl unzip
-wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-sudo dpkg -i google-chrome-stable_current_amd64.deb
-sudo apt-get install -y -f
+import os
+
+os.system("sudo apt-get update")
+os.system("sudo apt-get install -y wget curl unzip")
+os.system("wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb")
+os.system("sudo dpkg -i google-chrome-stable_current_amd64.deb")
+os.system("sudo apt-get install -y -f")
 import os
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
