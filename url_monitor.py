@@ -20,16 +20,16 @@ import chromedriver_autoinstaller
 import time
 
 # === TESTING CONFIGURATION (DELETE AFTER TESTING) ===
-# Email settings
-SENDER_EMAIL = "tajuttech360@gmail.com"
-RECIPIENT_EMAILS = ["teejeedeeone@gmail.com"]
-EMAIL_PASSWORD = "wlrg tgou tlzf zysy"
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
+SENDER_EMAIL = os.getenv("SENDER_EMAIL")
+RECIPIENT_EMAILS = os.getenv("RECIPIENT_EMAILS").split(",")  # Comma-separated list
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+SMTP_SERVER = os.getenv("SMTP_SERVER")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))  # Default to 587 if not set
 
 # GitHub settings
-GH_TOKEN = "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"
-REPO_NAME = "teejeedeeone2025/studious-winner"
+GH_TOKEN = os.getenv("GH_TOKEN")
+REPO_NAME = os.getenv("REPO_NAME")
+
 URL_LIST_FILE = "url_list.txt"
 
 # Target website
