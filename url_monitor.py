@@ -21,14 +21,14 @@ import time
 
 # === TESTING CONFIGURATION (DELETE AFTER TESTING) ===
 # Email settings
-SENDER_EMAIL = "dahmadu071@gmail.com"
+SENDER_EMAIL = "tajuttech360@gmail.com"
 RECIPIENT_EMAILS = ["teejeedeeone@gmail.com"]
-EMAIL_PASSWORD = "oase wivf hvqn lyhr"
+EMAIL_PASSWORD = "wlrg tgou tlzf zysy"
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
 # GitHub settings
-GH_TOKEN = "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"
+GH_TOKEN = "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"
 REPO_NAME = "teejeedeeone2025/studious-winner"
 URL_LIST_FILE = "url_list.txt"
 
