@@ -1,22 +1,14 @@
 import os
 import smtplib
-import time
-import requests
-import subprocess
 from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-from email.mime.multipart import MIMEMultipart
 from datetime import datetime
+import requests
 from bs4 import BeautifulSoup
 from github import Github
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-import chromedriver_autoinstaller
+import subprocess
+import time
 
-# ===== HARDCODED CONFIGURATION (DELETE AFTER TESTING) =====
+# === INSECURE HARDCODED CONFIG (DELETE AFTER TESTING!) ===
 # Email settings
 SENDER_EMAIL = "dahmadu071@gmail.com"
 RECIPIENT_EMAILS = ["teejeedeeone@gmail.com"]
@@ -32,270 +24,122 @@ URL_LIST_FILE = "url_list.txt"
 # Target website
 TARGET_URL = "https://bbc.com"
 
-# MTN Automation settings
-MTN_PHONE = "09060558418"
-MTN_LOGIN_URL = "https://auth.mtnonline.com/login"
-
-# ===== CORE FUNCTIONS =====
-def install_chrome_driver():
-    """Install and configure Chrome with ChromeDriver"""
-    print("\n" + "="*50)
-    print("CHROME ENVIRONMENT SETUP".center(50))
-    print("="*50)
-    
-    try:
-        # Check if Chrome is installed
-        try:
-            chrome_version = subprocess.check_output(['google-chrome', '--version']).decode().strip()
-            print(f"✓ Chrome installed: {chrome_version}")
-        except:
-            print("Installing Chrome browser...")
-            subprocess.run(['wget', 'https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb'], check=True)
-            subprocess.run(['sudo', 'apt', 'install', './google-chrome-stable_current_amd64.deb', '-y'], check=True)
-            chrome_version = subprocess.check_output(['google-chrome', '--version']).decode().strip()
-            print(f"✓ Chrome installed: {chrome_version}")
-
-        # Install ChromeDriver
-        print("\nInstalling ChromeDriver...")
-        chromedriver_path = chromedriver_autoinstaller.install()
-        driver_version = subprocess.check_output([chromedriver_path, '--version']).decode().strip()
-        print(f"✓ ChromeDriver installed: {driver_version}")
-        print(f"Path: {chromedriver_path}")
-        
-        return chromedriver_path
-        
-    except Exception as e:
-        print(f"\n⚠️ Setup failed: {str(e)}")
-        return None
-
-def setup_chrome_browser():
-    """Configure headless Chrome browser"""
-    print("\nInitializing Chrome browser...")
-    try:
-        chromedriver_path = install_chrome_driver()
-        if not chromedriver_path:
-            return None
-
-        options = Options()
-        options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--window-size=1920x1080')
-        options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-
-        service = Service(executable_path=chromedriver_path)
-        driver = webdriver.Chrome(service=service, options=options)
-        
-        # Verify browser works
-        driver.get("about:blank")
-        print("✓ Chrome ready for automation")
-        return driver
-        
-    except Exception as e:
-        print(f"⚠️ Browser initialization failed: {str(e)}")
-        return None
-
 def load_current_urls():
     """Load URLs from GitHub repository"""
-    print("\nLoading existing URLs...")
+    g = Github(GH_TOKEN)
+    repo = g.get_repo(REPO_NAME)
     try:
-        g = Github(GH_TOKEN)
-        repo = g.get_repo(REPO_NAME)
         file = repo.get_contents(URL_LIST_FILE)
-        urls = set(file.decoded_content.decode().splitlines())
-        print(f"Loaded {len(urls)} URLs from repository")
-        return urls
-    except Exception as e:
-        print(f"Creating new URL list ({str(e)})")
-        g = Github(GH_TOKEN)
-        repo = g.get_repo(REPO_NAME)
+        return set(file.decoded_content.decode().splitlines())
+    except:
+        # Create file if it doesn't exist
         repo.create_file(URL_LIST_FILE, "Initial URL list", "")
         return set()
 
-def scrape_website_urls():
-    """Extract URLs from target website"""
-    print(f"\nScraping {TARGET_URL}...")
+def fetch_new_urls():
+    """Scrape target website for URLs with improved filtering"""
     try:
-        response = requests.get(TARGET_URL, timeout=15)
+        response = requests.get(TARGET_URL, timeout=10)
         response.raise_for_status()
-        
         soup = BeautifulSoup(response.text, 'html.parser')
-        base_domain = requests.compat.urlparse(TARGET_URL).netloc
         
-        found_urls = set()
-        for link in soup.find_all('a', href=True):
-            href = link['href']
-            
-            # Convert relative URLs to absolute
+        # Improved URL collection with filtering
+        base_url = requests.compat.urlparse(TARGET_URL).netloc
+        links = set()
+        
+        for a in soup.find_all('a', href=True):
+            href = a['href']
+            # Handle relative URLs
             if href.startswith('/'):
-                href = f"https://{base_domain}{href}"
-            
-            # Filter valid URLs
-            if href.startswith(('http://', 'https://')):
-                found_urls.add(href)
-        
-        print(f"Found {len(found_urls)} URLs on page")
-        return found_urls
+                href = f"https://{base_url}{href}"
+            # Filter out non-HTTP links and junk
+            if href.startswith(('http://', 'https://')) and not any(x in href for x in ['#', 'tel:', 'mailto:']):
+                links.add(href)
+        return links
         
     except Exception as e:
-        print(f"⚠️ Scraping failed: {str(e)}")
+        print(f"Error fetching URLs: {e}")
         return set()
 
-def run_mtn_automation(driver):
-    """Perform MTN login automation"""
-    print("\nRunning MTN automation...")
+def send_email_notification(new_urls):
+    """Send formatted email alert"""
+    subject = f"🚨 {len(new_urls)} New URLs detected on {TARGET_URL}"
+    body = f"New URLs detected at {datetime.now()}:\n\n" + "\n".join(sorted(new_urls))
+    
+    msg = MIMEText(body)
+    msg['Subject'] = subject
+    msg['From'] = SENDER_EMAIL
+    msg['To'] = ", ".join(RECIPIENT_EMAILS)
+    
     try:
-        driver.get(MTN_LOGIN_URL)
-        time.sleep(3)
-        
-        # Navigate through login form
-        body = driver.find_element(By.TAG_NAME, 'body')
-        for _ in range(7):
-            body.send_keys(Keys.TAB)
-            time.sleep(0.3)
-        
-        # Click continue button
-        driver.switch_to.active_element.click()
-        time.sleep(0.5)
-        
-        # Enter phone number
-        body.send_keys(Keys.TAB)
-        phone_field = driver.switch_to.active_element
-        phone_field.send_keys(MTN_PHONE)
-        time.sleep(1)
-        phone_field.send_keys(Keys.ENTER)
-        time.sleep(3)
-        
-        # Capture screenshot
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        screenshot_path = f"mtn_result_{timestamp}.png"
-        driver.save_screenshot(screenshot_path)
-        print(f"✓ Screenshot saved: {screenshot_path}")
-        
-        return screenshot_path
-        
-    except Exception as e:
-        print(f"⚠️ MTN automation failed: {str(e)}")
-        return None
-
-def send_alert_email(new_urls, attachment_path=None):
-    """Send notification email with attachments"""
-    print("\nPreparing email notification...")
-    try:
-        msg = MIMEMultipart()
-        msg['Subject'] = f"🚨 {len(new_urls)} New URLs Detected"
-        msg['From'] = SENDER_EMAIL
-        msg['To'] = ", ".join(RECIPIENT_EMAILS)
-        
-        # Email body
-        body_text = f"""
-        New URLs detected at {datetime.now()}:
-        
-        {chr(10).join(sorted(new_urls))}
-        
-        ---
-        Automated Monitoring System
-        """
-        msg.attach(MIMEText(body_text))
-        
-        # Attach screenshot if available
-        if attachment_path and os.path.exists(attachment_path):
-            with open(attachment_path, 'rb') as f:
-                img = MIMEImage(f.read())
-                img.add_header('Content-Disposition', 'attachment', filename=os.path.basename(attachment_path))
-                msg.attach(img)
-        
-        # Send email
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
             server.login(SENDER_EMAIL, EMAIL_PASSWORD)
             server.send_message(msg)
-        
-        print("✓ Email notification sent")
+        print("Email alert sent successfully")
         return True
-        
     except Exception as e:
-        print(f"⚠️ Failed to send email: {str(e)}")
+        print(f"Failed to send email: {e}")
         return False
 
-def update_url_list(new_urls):
-    """Update GitHub repository with new URLs"""
-    print("\nUpdating URL list...")
+def update_github_urls(new_urls):
+    """Update GitHub file with new URLs"""
+    g = Github(GH_TOKEN)
+    repo = g.get_repo(REPO_NAME)
+    
     try:
-        g = Github(GH_TOKEN)
-        repo = g.get_repo(REPO_NAME)
         file = repo.get_contents(URL_LIST_FILE)
-        
-        # Merge and sort URLs
-        existing_urls = set(file.decoded_content.decode().splitlines())
-        updated_urls = sorted(existing_urls.union(new_urls))
-        
-        # Commit changes
-        repo.update_file(
-            path=URL_LIST_FILE,
-            message=f"Add {len(new_urls)} new URLs",
-            content="\n".join(updated_urls),
-            sha=file.sha
-        )
-        
-        print(f"✓ Repository updated with {len(new_urls)} new URLs")
-        return True
-        
+        current_content = file.decoded_content.decode()
+        updated_content = current_content + "\n" + "\n".join(sorted(new_urls))
+        repo.update_file(URL_LIST_FILE, f"Add {len(new_urls)} new URLs", updated_content, file.sha)
+        print("GitHub URL list updated")
     except Exception as e:
-        print(f"⚠️ Failed to update repository: {str(e)}")
+        print(f"Failed to update GitHub: {e}")
+
+def run_mtn_automation():
+    """Run the MTN automation script as a subprocess"""
+    try:
+        # Assuming both scripts are in the same directory
+        result = subprocess.run(['python', 'mtauto.py'], check=True)
+        return result.returncode == 0
+    except subprocess.CalledProcessError as e:
+        print(f"MTN automation failed: {e}")
+        return False
+    except FileNotFoundError:
+        print("MTN automation script not found")
         return False
 
 def main():
-    print("\n" + "="*50)
-    print(f"URL MONITORING STARTED: {datetime.now()}".center(50))
-    print("="*50)
+    print(f"\n=== Checking {TARGET_URL} at {datetime.now()} ===")
     
-    # Initialize browser
-    driver = setup_chrome_browser()
-    if not driver:
+    current_urls = load_current_urls()
+    print(f"Currently tracking {len(current_urls)} URLs")
+    
+    fetched_urls = fetch_new_urls()
+    if not fetched_urls:
+        print("No URLs fetched from target website")
         return
     
-    try:
-        # Load existing URLs
-        known_urls = load_current_urls()
-        
-        # Scrape target website
-        current_urls = scrape_website_urls()
-        if not current_urls:
-            return
-        
-        # Find new URLs
-        new_urls = current_urls - known_urls
-        if not new_urls:
-            print("\nNo new URLs detected")
-            return
-        
-        # Process new URLs
-        print(f"\nDiscovered {len(new_urls)} new URLs:")
-        for url in sorted(new_urls)[:5]:  # Show sample
+    new_urls = fetched_urls - current_urls
+    
+    if new_urls:
+        print(f"\nFound {len(new_urls)} NEW URLs:")
+        for url in sorted(new_urls):
             print(f"• {url}")
-        if len(new_urls) > 5:
-            print(f"• ...and {len(new_urls)-5} more")
         
-        # Update repository
-        update_url_list(new_urls)
+        if send_email_notification(new_urls):
+            # Only trigger MTN automation if email was sent successfully
+            print("Triggering MTN automation...")
+            time.sleep(2)  # Small delay before starting next script
+            if run_mtn_automation():
+                print("MTN automation completed successfully")
+            else:
+                print("MTN automation failed")
         
-        # Run MTN automation
-        screenshot_path = run_mtn_automation(driver)
-        
-        # Send notification
-        send_alert_email(new_urls, screenshot_path)
-        
-        # Clean up
-        if screenshot_path and os.path.exists(screenshot_path):
-            os.remove(screenshot_path)
-            
-    finally:
-        driver.quit()
-        print("\n" + "="*50)
-        print("MONITORING COMPLETE".center(50))
-        print("="*50)
-        print("\n🚨 SECURITY REMINDER: DELETE THIS SCRIPT IMMEDIATELY")
+        update_github_urls(new_urls)
+    else:
+        print("No new URLs detected")
 
 if __name__ == "__main__":
     main()
+    print("\n=== TESTING COMPLETE - DELETE THIS SCRIPT IMMEDIATELY ===")
