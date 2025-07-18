@@ -27,7 +27,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           REPO_NAME: ${{ secrets.REPO_NAME }}
           SMS_PHONE_NUMBER: ${{ secrets.SMS_PHONE_NUMBER }}
-        run: python bot.py
+        run: python url_monitor.py
 
       # Add delay before next trigger (5 minutes = 300 seconds)
       - name: Delay before next run
