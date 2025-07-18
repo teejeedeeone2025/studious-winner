@@ -16,12 +16,18 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install Chrome and dependencies
-        run: |
-          pip install -r requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Run bot
-        run: python url_monitor.py
+        env:
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          REPO_NAME: ${{ secrets.REPO_NAME }}
+          SMS_PHONE_NUMBER: ${{ secrets.SMS_PHONE_NUMBER }}
+        run: python bot.py
 
       # Add delay before next trigger (5 minutes = 300 seconds)
       - name: Delay before next run
