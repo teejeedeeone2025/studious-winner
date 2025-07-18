@@ -19,19 +19,30 @@ from selenium.webdriver.chrome.options import Options
 import chromedriver_autoinstaller
 import time
 
-# Email settings
-SENDER_EMAIL = os.environ["SENDER_EMAIL"]  # Will fail if secret not set
-RECIPIENT_EMAILS = os.environ["RECIPIENT_EMAILS"].split(",")  # Comma-separated list
-EMAIL_PASSWORD = os.environ["EMAIL_PASSWORD"]
-SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")  # Default if not set
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))  # Default 587
+def get_env_variable(name, default=None):
+    """Safely get environment variable with optional default"""
+    try:
+        return os.environ[name]
+    except KeyError:
+        if default is not None:
+            return default
+        raise RuntimeError(f"Required environment variable missing: {name}")
+
+# === CONFIGURATION ===
+# Email settings (will fail if secrets not set in production)
+SENDER_EMAIL = get_env_variable("SENDER_EMAIL")
+RECIPIENT_EMAILS = get_env_variable("RECIPIENT_EMAILS").split(",")
+EMAIL_PASSWORD = get_env_variable("EMAIL_PASSWORD")
+SMTP_SERVER = get_env_variable("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(get_env_variable("SMTP_PORT", "587"))
 
 # GitHub settings
-GH_TOKEN = os.environ["GH_TOKEN"]
-REPO_NAME = os.environ["REPO_NAME"]
+GH_TOKEN = get_env_variable("GH_TOKEN")
+REPO_NAME = get_env_variable("REPO_NAME")
 
 # SMS settings
-SMS_PHONE_NUMBER = os.environ["SMS_PHONE_NUMBER"]
+SMS_PHONE_NUMBER = get_env_variable("SMS_PHONE_NUMBER")
+
 
 
 URL_LIST_FILE = "url_list.txt"
