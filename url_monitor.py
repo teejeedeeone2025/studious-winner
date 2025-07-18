@@ -19,29 +19,37 @@ from selenium.webdriver.chrome.options import Options
 import chromedriver_autoinstaller
 import time
 
-def get_env_variable(name, default=None):
-    """Safely get environment variable with optional default"""
-    try:
-        return os.environ[name]
-    except KeyError:
-        if default is not None:
-            return default
-        raise RuntimeError(f"Required environment variable missing: {name}")
 
-# === CONFIGURATION ===
-# Email settings (will fail if secrets not set in production)
-SENDER_EMAIL = get_env_variable("SENDER_EMAIL")
-RECIPIENT_EMAILS = get_env_variable("RECIPIENT_EMAILS").split(",")
-EMAIL_PASSWORD = get_env_variable("EMAIL_PASSWORD")
-SMTP_SERVER = get_env_variable("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(get_env_variable("SMTP_PORT", "587"))
+
+import os
+
+# === Configuration from Environment Variables ===
+def get_required_env(name):
+    """Get required environment variable or fail clearly"""
+    value = os.environ.get(name)
+    if value is None:
+        raise RuntimeError(f"Missing required environment variable: {name}. "
+                         "Please set it in GitHub Secrets.")
+    return value
+
+# Email settings
+SENDER_EMAIL = get_required_env("SENDER_EMAIL")
+RECIPIENT_EMAILS = get_required_env("RECIPIENT_EMAILS").split(",")
+EMAIL_PASSWORD = get_required_env("EMAIL_PASSWORD")
+SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
 
 # GitHub settings
-GH_TOKEN = get_env_variable("GH_TOKEN")
-REPO_NAME = get_env_variable("REPO_NAME")
+GH_TOKEN = get_required_env("GH_TOKEN")
+REPO_NAME = get_required_env("REPO_NAME")
 
 # SMS settings
-SMS_PHONE_NUMBER = get_env_variable("SMS_PHONE_NUMBER")
+SMS_PHONE_NUMBER = get_required_env("SMS_PHONE_NUMBER")
+
+# === Rest of your existing code below ===
+# (All your existing functions and logic remain exactly the same)
+
+
 
 
 
